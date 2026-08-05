@@ -1,0 +1,56 @@
+name: 手动打包构建
+# 仅保留网页手动触发入口，推送代码/推送tag不会自动运行
+on:
+  workflow_dispatch:
+    # 网页运行时可手动填写版本号
+    inputs:
+      version:
+        description: 版本号（格式 v2.18.0）
+        required: true
+        default: v2.18.0
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 拉取完整代码与子模块
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # JDK17 环境
+      - name: set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # 安装编译依赖
+      - name: Install ninja
+        run: sudo apt-get update && sudo apt-get install ninja-build -y
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.31.1'
+
+      # 赋予脚本执行权限
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Gradle 编译项目
+      - name: Building project
+        run: ./gradlew build
+
+      # 读取手动输入的版本号，打包压缩包
+      - name: Compress files
+        run: zip -r -q dpt-shell-${{ github.event.inputs.version }}.zip executable/
+
+      # 上传至 Artifacts，打包完成网页直接下载
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 项目压缩包
+          path: dpt-shell-${{ github.event.inputs.version }}.zip
