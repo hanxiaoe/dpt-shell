@@ -2,57 +2,42 @@ name: Create release
 
 on:
   push:
+    # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*'
-
-# 全局消除Node版本废弃警告
-env:
-  ACTIONS_ALLOW_UNSECURE_NODE_VERSION: true
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Install ninja
-        run: sudo apt-get update && sudo apt-get install ninja-build
-
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v1
-        with:
-          cmake-version: '3.31.1'
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Building project
-        run: ./gradlew build
-
-      # 替换废弃的set-output写法，标准新版输出语法
-      - name: Get latest tag name
-        id: get_latest_tag_name
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Compress files
-        run: zip -r -q dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip executable/
-
-      # 正确缩进、替换支持覆盖的Action，overwrite_tag参数生效
-      - name: Auto create/replace release
-        uses: crowbarmaster/action-automatic-releases@latest
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          draft: false
-          overwrite_tag: true  # 允许覆盖已有tag对应的Release
-          files: |
-            dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+    - name: Install ninja
+      run: sudo apt-get update && sudo apt-get install ninja-build
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1
+      with:
+       cmake-version: '3.31.1'
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Building project
+      run: ./gradlew build
+    - name: Get latest tag name
+      id: get_latest_tag_name
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    - name: Compress files
+      run:  zip -r -q dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip executable/
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip
