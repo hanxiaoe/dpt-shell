@@ -41,3 +41,4 @@ jobs:
         prerelease: false
         files: |
           dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip
+          allow_override: true
