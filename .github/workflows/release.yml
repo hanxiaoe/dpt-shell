@@ -2,9 +2,8 @@ name: Create release
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'
 
 jobs:
   build:
@@ -35,10 +34,12 @@ jobs:
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
     - name: Compress files
       run:  zip -r -q dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip executable/
-    - uses: "marvinpinto/action-automatic-releases@latest"
+    # 更换支持覆盖的Action
+    uses: crowbarmaster/action-automatic-releases@latest
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
+        draft: false
+        overwrite_tag: true # 核心：覆盖已存在tag的release
         files: |
           dpt-shell-${{ steps.get_latest_tag_name.outputs.VERSION }}.zip
-          allow_override: true
